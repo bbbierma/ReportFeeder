@@ -1,3 +1,5 @@
+cd ~/ReportFeeder
+test -f feeds.js || cat > feeds.js <<'JS'
 export const FEEDS = {
   DraftReport:  'https://www.europarl.europa.eu/rss/doc/draft-reports/en.xml',
   DraftOpinion: 'https://www.europarl.europa.eu/rss/doc/draft-opinions/en.xml',
@@ -6,3 +8,6 @@ export const FEEDS = {
   Reports:      'https://www.europarl.europa.eu/rss/doc/reports/en.xml',
   Agenda:       'https://www.europarl.europa.eu/rss/doc/agendas-committees/en.xml'
 };
+JS
+git add feeds.js && git commit -m "Add feeds.js" && git push
+
