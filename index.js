@@ -4,7 +4,7 @@ import { FEEDS } from './feeds.js';
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const parser = new Parser();
-const DB_ID  = process.env.DATABASE_ID;   //  your Notion DB id
+const DB_ID  = process.env.DATABASE_ID;   // your Notion DB id
 
 async function parseFeed(label, url) {
   console.log(`📡 Fetching ${label}`);
@@ -18,7 +18,7 @@ async function parseFeed(label, url) {
     const pe = item.title?.match(/PE[0-9]+/)?.[0] || '';
     const rapporteur = item.creator || '';
     const group = item.title?.match(/\((.*?)\)/)?.[1] || '';
-    const procedure = item.contentSnippet?.match(/Procedure:? ([A-Z0-9\/]+)/i)?.[1] || '';
+    const procedure = item.contentSnippet?.match(/Procedure:? ([A-Z0-9/]+)/i)?.[1] || '';
     const link = item.link || '';
     const title = item.title || '';
     rows.push({ src, committee, pub, pe, rapporteur, group, procedure, link, title });
@@ -30,7 +30,7 @@ async function pushToNotion(label, rows) {
   for (const r of rows.slice(0, 50)) { // limit for safety
     try {
       const res = await notion.pages.create({
-        parent: { database_id: process.env.DATABASE_ID },
+        parent: { database_id: DB_ID },
         properties: {
           Source: {
             select: { name: r.src || 'Unknown Source' }
@@ -68,12 +68,20 @@ async function pushToNotion(label, rows) {
         }
       });
 
-      console.log(`✅ Added: ${r.title} → ${res.id}`);
+      console.log(`✅ ${label}: added ${r.title} → ${res.id}`);
     } catch (err) {
-      console.error('❌ Error adding:', r.title);
+      console.error(`❌ ${label}: error adding ${r.title}`);
       console.error('Message:', err.message);
       console.error('Body:', JSON.stringify(err.body, null, 2));
     }
   }
 }
 
+async function main() {
+  for (const [label, url] of Object.entries(FEEDS)) {
+    const rows = await parseFeed(label, url);
+    await pushToNotion(label, rows);
+  }
+}
+
+main();
