@@ -29,7 +29,7 @@ async function parseFeed(label, url) {
 async function pushToNotion(label, rows) {
   for (const r of rows.slice(0, 50)) { // limit for safety
     try {
-      await notion.pages.create({
+      const res = await notion.pages.create({
         parent: { database_id: process.env.DATABASE_ID },
         properties: {
           Source: {
@@ -67,9 +67,12 @@ async function pushToNotion(label, rows) {
           }
         }
       });
-      console.log(`✅ ${label}: added ${r.title}`);
+
+      console.log(`✅ Added: ${r.title} → ${res.id}`);
     } catch (err) {
-      console.error(`❌ ${label}: error adding ${r.title}`, err.body || err.message);
+      console.error('❌ Error adding:', r.title);
+      console.error('Message:', err.message);
+      console.error('Body:', JSON.stringify(err.body, null, 2));
     }
   }
 }
