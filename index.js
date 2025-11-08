@@ -27,32 +27,50 @@ async function parseFeed(label, url) {
 }
 
 async function pushToNotion(label, rows) {
-  for (const r of rows.slice(0, 20)) {       //  limit example
+  for (const r of rows.slice(0, 50)) { // limit for safety
     try {
       await notion.pages.create({
-        parent: { database_id: DB_ID },
+        parent: { database_id: process.env.DATABASE_ID },
         properties: {
-          Source:     { url: r.src },
-          Committee:  { rich_text: [{ text: { content: r.committee } }] },
-          PubDate:    { date: { start: r.pub } },
-          PE_number:  { rich_text: [{ text: { content: r.pe } }] },
-          Rapporteur: { rich_text: [{ text: { content: r.rapporteur } }] },
-          Group:      { rich_text: [{ text: { content: r.group } }] },
-          Procedure:  { rich_text: [{ text: { content: r.procedure } }] },
-          Link:       { url: r.link },
-          Title:      { title: [{ text: { content: r.title } }] }
+          Source: {
+            select: { name: r.src || 'Unknown Source' }
+          },
+          Committee: {
+            multi_select: r.committee
+              ? r.committee.split(',').map(c => ({ name: c.trim() }))
+              : [{ name: 'Unknown' }]
+          },
+          PubDate: {
+            date: r.pub ? { start: r.pub } : null
+          },
+          PE_number: {
+            rich_text: [{ text: { content: r.pe || '' } }]
+          },
+          Rapporteur: {
+            multi_select: r.rapporteur
+              ? r.rapporteur.split(',').map(p => ({ name: p.trim() }))
+              : [{ name: 'Unknown' }]
+          },
+          Group: {
+            multi_select: r.group
+              ? r.group.split(',').map(g => ({ name: g.trim() }))
+              : [{ name: 'Unknown' }]
+          },
+          Procedure: {
+            rich_text: [{ text: { content: r.procedure || '' } }]
+          },
+          Link: {
+            url: r.link || null
+          },
+          Title: {
+            title: [{ text: { content: r.title || '(untitled)' } }]
+          }
         }
       });
-    } catch (e) {
-      console.error('❌', label, r.title, e.message);
+      console.log(`✅ ${label}: added ${r.title}`);
+    } catch (err) {
+      console.error(`❌ ${label}: error adding ${r.title}`, err.body || err.message);
     }
   }
-  console.log(`✅ ${label} – pushed ${rows.length} items`);
 }
 
-(async () => {
-  for (const [label, url] of Object.entries(FEEDS)) {
-    const rows = await parseFeed(label, url);
-    await pushToNotion(label, rows);
-  }
-})();
